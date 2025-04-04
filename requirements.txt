@@ -1,0 +1,8 @@
+transformers
+datasets
+ipywidgets
+python-dotenv
+pandas
+evaluate
+openai
+huggingface_hub
