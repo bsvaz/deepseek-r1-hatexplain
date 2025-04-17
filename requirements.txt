@@ -6,3 +6,4 @@ pandas
 evaluate
 openai
 huggingface_hub
+peft

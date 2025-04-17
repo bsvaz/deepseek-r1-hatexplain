@@ -1,5 +1,4 @@
-import re  # Import regular expressions for text parsing
-import requests  # Import the requests library to make HTTP requests
+import re
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -8,6 +7,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import textwrap
+import evaluate
+import numpy as np
+import gc
+from tqdm.auto import tqdm
 from openai import OpenAI, AsyncOpenAI
 
 load_dotenv()
@@ -289,3 +292,55 @@ def extract_classification_and_thinking(df):
     
     return new_df
 
+    
+    # Load metrics (only when needed to prevent keeping them in memory)
+    accuracy_metric = evaluate.load("accuracy")
+    accuracy = accuracy_metric.compute(predictions=all_predicted_labels, references=labels)
+    del accuracy_metric
+    
+    f1_metric = evaluate.load("f1")
+    f1 = f1_metric.compute(predictions=all_predicted_labels, references=labels, average="weighted")
+    del f1_metric
+    
+    # Final cleanup
+    del all_predicted_labels
+    gc.collect()
+
+    return {
+        "accuracy": accuracy["accuracy"],
+        "f1": f1["f1"]
+    }
+
+def analyze_token_length(dataset, tokenizer):
+    # Function to format conversations safely
+    def format_conversation(messages):
+        try:
+            # Try to use the tokenizer's built-in method first
+            if hasattr(tokenizer, 'apply_chat_template'):
+                return tokenizer.apply_chat_template(messages, tokenize=False)
+            else:
+                # Fallback to manual formatting
+                print("Warning: Using fallback formatting method.")
+                conversation = ""
+                for msg in messages:
+                    role = msg["role"]
+                    content = msg["content"]
+                    conversation += f"{role}: {content}\n\n"
+                return conversation
+        except Exception as e:
+            print(f"Warning: Error formatting conversation: {e}")
+            # Extra fallback in case of any errors
+            return " ".join([msg["content"] for msg in messages])
+
+    # Collect token lengths
+    token_lengths = []
+    for idx in tqdm(range(len(dataset))):
+        # Get conversation from the dataset - convert numpy.int64 to regular Python int
+        messages = dataset[int(idx)]["messages"]
+        conversation = format_conversation(messages)
+
+            # Tokenize and get length
+    tokens = tokenizer(conversation, return_tensors="pt")
+    token_lengths.append(len(tokens.input_ids[0]))
+
+    print(f"Max token length: {np.max(token_lengths)}")

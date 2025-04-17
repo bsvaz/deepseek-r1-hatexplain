@@ -18,3 +18,8 @@ __pycache__/
 .vscode
 .bash_history
 .wget-hsts
+.triton/
+deepseek-r1-hatexplain/
+wandb/
+.netrc
+
